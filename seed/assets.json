@@ -1,0 +1,27 @@
+{
+  "name": "Justin Oh",
+  "background": "First-year student at Minerva University in San Francisco, originally from Korea. Aspiring founder who wants to turn ideas into real products, not just concepts. Interested in AI agents, psychology, persuasion, economics, and how technology changes the way people learn.",
+  "assets": [
+    {
+      "type": "project",
+      "title": "Srake",
+      "one_liner": "A web game that trains persuasion skills through stage-based challenges, built at an SF hackathon.",
+      "url": null,
+      "tags": ["persuasion", "game", "learning", "hackathon", "psychology"]
+    },
+    {
+      "type": "achievement",
+      "title": "Founded Growth Lab",
+      "one_liner": "Founded Growth Lab, a personal development club.",
+      "url": null,
+      "tags": ["leadership", "community", "personal development"]
+    },
+    {
+      "type": "achievement",
+      "title": "AI Literacy Tutorial program at GIA Micro School",
+      "one_liner": "Ran the AI Literacy Tutorial program at GIA Micro School.",
+      "url": null,
+      "tags": ["AI", "education", "teaching", "learning"]
+    }
+  ]
+}
