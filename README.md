@@ -38,4 +38,4 @@ npm run dev                 # http://localhost:3000
 ```
 Terminal-only: `npx tsx scripts/run-full.ts "<goal>"`.
 
-While `DEMO_REDIRECT_TO` is set, every email goes to that address, with the original recipient noted at the top.
+While `DEMO_REDIRECT_TO` is set, every email goes to that address, with the original recipient noted at the top (cards without a found email can then also be approved, as a demo fallback). On a public deploy, set `APP_PASSCODE`: every API call then needs it (the page asks once).

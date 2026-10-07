@@ -1,9 +1,12 @@
+import { denied } from "@/lib/auth";
 import { db, DEMO_USER_ID } from "@/lib/db";
 import { CANDIDATE_COLS } from "@/lib/pipeline";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const no = denied(req);
+  if (no) return no;
   const { data: run } = await db
     .from("runs")
     .select("id,goal,agent_cost_usd,monid_cost_usd")

@@ -35,6 +35,18 @@ const EXAMPLES = [
 
 const money = (n: number) => `$${n.toFixed(2)}`;
 
+// Adds the demo passcode (if the deploy sets APP_PASSCODE); asks once on 401 and remembers it in this browser.
+async function api(url: string, init: RequestInit = {}, retry = true): Promise<Response> {
+  let code = "";
+  try { code = localStorage.getItem("reachr-passcode") ?? ""; } catch {}
+  const res = await fetch(url, { ...init, headers: { ...(init.headers as Record<string, string>), "x-reachr-passcode": code } });
+  if (res.status !== 401 || !retry) return res;
+  const entered = window.prompt("Enter the Reachr demo passcode");
+  if (!entered) return res;
+  try { localStorage.setItem("reachr-passcode", entered); } catch {}
+  return api(url, init, false);
+}
+
 export default function Home() {
   const [phase, setPhase] = useState<"idle" | "running" | "results">("idle");
   const [goal, setGoal] = useState("");
@@ -49,7 +61,7 @@ export default function Home() {
     if (!text) return;
     setGoal(text); setSteps({}); setError(null); setNotice(null); setPhase("running");
     try {
-      const res = await fetch("/api/run", {
+      const res = await api("/api/run", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ goal: text }),
       });
       if (!res.ok || !res.body) throw new Error(`Run failed (HTTP ${res.status})`);
@@ -90,7 +102,7 @@ export default function Home() {
   async function loadLatest() {
     setNotice(null);
     try {
-      const data = (await (await fetch("/api/runs/latest")).json()) as RunResult | { runId: null };
+      const data = (await (await api("/api/runs/latest")).json()) as RunResult | { runId: null };
       if (!data.runId) return setNotice("No runs yet. Start one above.");
       const r = data as RunResult;
       setResult(r); setGoal(r.goal); setDemoRedirect(r.demoRedirect); setPhase("results");
@@ -269,7 +281,7 @@ function Results({ result, onNew }: { result: RunResult; onNew: () => void }) {
         <p className="empty">No one matched this goal. Try a broader goal or a different angle.</p>
       ) : (
         <div className="cards">
-          {list.map((c, i) => <Card key={c.id} c={c} i={i} />)}
+          {list.map((c, i) => <Card key={c.id} c={c} i={i} demo={!!result.demoRedirect} />)}
         </div>
       )}
       <footer className="foot">
@@ -282,7 +294,7 @@ function Results({ result, onNew }: { result: RunResult; onNew: () => void }) {
   );
 }
 
-function Card({ c, i }: { c: Candidate; i: number }) {
+function Card({ c, i, demo }: { c: Candidate; i: number; demo: boolean }) {
   const [subject, setSubject] = useState(c.subject ?? "");
   const [body, setBody] = useState(c.body);
   const [why, setWhy] = useState(false);
@@ -294,9 +306,9 @@ function Card({ c, i }: { c: Candidate; i: number }) {
   async function send() {
     setState("busy");
     try {
-      const r = await (await fetch("/api/send", {
+      const r = await (await api("/api/send", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ candidateId: c.id, subject, body }),
+        body: JSON.stringify({ candidateId: c.id, subject: isEmail ? subject : `LinkedIn DM draft for ${c.name}`, body }),
       })).json();
       if (!r.ok) throw new Error(r.error || "Send failed");
       setMsg({ sentTo: r.sentTo, redirected: r.redirected }); setState("done");
@@ -311,7 +323,7 @@ function Card({ c, i }: { c: Candidate; i: number }) {
     window.open(c.source_url, "_blank", "noopener,noreferrer");
     setState("busy");
     const copied = await copy;
-    try { await fetch("/api/contacted", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ candidateId: c.id }) }); } catch {}
+    try { await api("/api/contacted", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ candidateId: c.id }) }); } catch {}
     setMsg({ copied }); setState("done");
   }
 
@@ -375,7 +387,10 @@ function Card({ c, i }: { c: Candidate; i: number }) {
               {msg.redirected && <span className="demo-badge" style={{ marginLeft: 8 }}>demo redirect</span>}
             </span>
           )}
-          {done && !isEmail && (
+          {done && !isEmail && msg.sentTo && (
+            <span className="status ok">Sent to {msg.sentTo}<span className="demo-badge" style={{ marginLeft: 8 }}>demo redirect</span></span>
+          )}
+          {done && !isEmail && !msg.sentTo && (
             <span className="status ok">{msg.copied ? "Copied. Paste it in LinkedIn." : msg.copied === false ? "Opened LinkedIn. Copy the message above." : "Contacted"}</span>
           )}
           {!done && (isEmail ? (
@@ -383,7 +398,14 @@ function Card({ c, i }: { c: Candidate; i: number }) {
               {state === "busy" ? "Sending..." : "Approve & send"}
             </button>
           ) : (
-            <button className="btn btn-accent" onClick={openLinkedIn} disabled={state === "busy"}>Open in LinkedIn</button>
+            <>
+              {demo && (
+                <button className="btn btn-ghost" onClick={send} disabled={state === "busy" || !body.trim()} title="Demo mode: sends this draft to the demo inbox">
+                  {state === "busy" ? "Sending..." : "Approve & send to my inbox"}
+                </button>
+              )}
+              <button className="btn btn-accent" onClick={openLinkedIn} disabled={state === "busy"}>Open in LinkedIn</button>
+            </>
           ))}
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { denied } from "@/lib/auth";
 import { runPipeline } from "@/lib/pipeline";
 
 export const runtime = "nodejs";
@@ -5,6 +6,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function POST(req: Request) {
+  const no = denied(req);
+  if (no) return no;
   const { goal } = await req.json().catch(() => ({}));
   if (typeof goal !== "string" || !goal.trim()) return Response.json({ error: "goal required" }, { status: 400 });
   const enc = new TextEncoder();

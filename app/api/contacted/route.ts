@@ -1,3 +1,4 @@
+import { denied } from "@/lib/auth";
 import { after } from "next/server";
 import { db } from "@/lib/db";
 import { rememberContacted } from "@/lib/agent37";
@@ -6,6 +7,8 @@ export const runtime = "nodejs";
 
 // linkedin_dm cards: the user sends the DM by hand; we only record it.
 export async function POST(req: Request) {
+  const no = denied(req);
+  if (no) return no;
   const { candidateId } = await req.json().catch(() => ({}));
   if (typeof candidateId !== "string") return Response.json({ ok: false, error: "candidateId required" }, { status: 400 });
   const { data: c, error } = await db.from("candidates").update({ status: "contacted" }).eq("id", candidateId).select("name,org,run_id").maybeSingle();
