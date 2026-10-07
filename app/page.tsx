@@ -152,59 +152,72 @@ export default function Home() {
   );
 }
 
+const HOW = [
+  ["Find", "People with a recent post on your topic."],
+  ["Explain", "The sourced reason each one would reply."],
+  ["Draft", "An email from their work and yours. You approve it."],
+] as const;
+
 function Landing({ goal, setGoal, filters, setFilters, onRun, onLoad, notice }: {
   goal: string; setGoal: (g: string) => void; filters: Filters; setFilters: (f: Filters) => void;
   onRun: (g: string) => void; onLoad: () => void; notice: string | null;
 }) {
   const set = (k: keyof Filters) => (e: { target: { value: string } }) => setFilters({ ...filters, [k]: e.target.value });
   return (
-    <main className="hero">
-      <h1 id="goal-label">Who do you want to reach, and why?</h1>
-      <p className="sub">Reachr finds people with a real reason to reply, shows the source, and drafts an email that ties their work to yours.</p>
-      <form onSubmit={(e) => { e.preventDefault(); onRun(goal); }}>
-        <div className="goal-box">
-          <textarea
-            aria-labelledby="goal-label"
-            value={goal}
-            onChange={(e) => setGoal(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onRun(goal); }}
-            placeholder="e.g. PMs at fintech startups for user interviews about my budgeting app"
-            rows={3}
-          />
-          <div className="goal-actions">
-            <span className="hint">Nothing is sent until you approve it.</span>
-            <button className="btn btn-primary" type="submit" disabled={!goal.trim()}>Run</button>
+    <>
+      <div className="aurora" aria-hidden><i /><i /></div>
+      <main className="hero">
+        <p className="eyebrow"><span>Outreach agent</span> sourced, personal, approved by you</p>
+        <h1 id="goal-label">Who do you want to <em>reach</em>, and why?</h1>
+        <p className="sub">Reachr finds people with a real reason to reply, shows the source, and drafts an email that ties their work to yours.</p>
+        <form className="compose" onSubmit={(e) => { e.preventDefault(); onRun(goal); }}>
+          <div className="goal-box">
+            <textarea
+              aria-labelledby="goal-label"
+              value={goal}
+              onChange={(e) => setGoal(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onRun(goal); }}
+              placeholder="e.g. PMs at fintech startups for user interviews about my budgeting app"
+              rows={3}
+            />
+            <div className="goal-actions">
+              <span className="hint">Nothing is sent until you approve it.</span>
+              <button className="btn btn-primary" type="submit" disabled={!goal.trim()}>Run</button>
+            </div>
           </div>
+          <fieldset className="filters">
+            <legend>Narrow it down <span>(optional)</span></legend>
+            <div className="field">
+              <label htmlFor="f-location">Location</label>
+              <input id="f-location" value={filters.location} onChange={set("location")} placeholder="e.g. San Francisco" />
+            </div>
+            <div className="field">
+              <label htmlFor="f-role">Role</label>
+              <select id="f-role" value={filters.role} onChange={set("role")}>
+                <option value="">Any role</option>
+                {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="f-industry">Industry</label>
+              <input id="f-industry" value={filters.industry} onChange={set("industry")} placeholder="e.g. Edtech" />
+            </div>
+          </fieldset>
+        </form>
+        <div className="examples" aria-label="Example goals">
+          {EXAMPLES.map((ex) => (
+            <button key={ex} type="button" className="chip" onClick={() => setGoal(ex)}>{ex}</button>
+          ))}
         </div>
-        <fieldset className="filters">
-          <legend>Narrow it down <span>(optional)</span></legend>
-          <div className="field">
-            <label htmlFor="f-location">Location</label>
-            <input id="f-location" value={filters.location} onChange={set("location")} placeholder="e.g. San Francisco" />
-          </div>
-          <div className="field">
-            <label htmlFor="f-role">Role</label>
-            <select id="f-role" value={filters.role} onChange={set("role")}>
-              <option value="">Any role</option>
-              {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="f-industry">Industry</label>
-            <input id="f-industry" value={filters.industry} onChange={set("industry")} placeholder="e.g. Edtech" />
-          </div>
-        </fieldset>
-      </form>
-      <div className="examples" aria-label="Example goals">
-        {EXAMPLES.map((ex) => (
-          <button key={ex} type="button" className="chip" onClick={() => setGoal(ex)}>{ex}</button>
-        ))}
-      </div>
-      <div className="below">
-        <button className="btn btn-ghost btn-sm" onClick={onLoad}>Load last run</button>
-        {notice && <span role="status">{notice}</span>}
-      </div>
-    </main>
+        <ol className="how">
+          {HOW.map(([verb, text]) => <li key={verb}><b>{verb}</b><span>{text}</span></li>)}
+        </ol>
+        <div className="below">
+          <button className="btn btn-ghost btn-sm" onClick={onLoad}>Load last run</button>
+          {notice && <span role="status">{notice}</span>}
+        </div>
+      </main>
+    </>
   );
 }
 
