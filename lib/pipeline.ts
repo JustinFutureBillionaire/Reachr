@@ -43,7 +43,7 @@ export async function runPipeline(goal: string, emit: Emit) {
     step("filter", "done", `Kept ${kept.length}`, { count: kept.length });
 
     step("email", "start", "Looking up emails with Hunter");
-    const lookups = await Promise.all(kept.map((p) => findEmail(p.linkedin_handle)));
+    const lookups = await Promise.all(kept.map((p) => findEmail(p.linkedin_handle, p.name, p.org)));
     const withEmail = kept.map((p, i) => ({ ...p, email: lookups[i].email, org: p.org ?? lookups[i].company }));
     const emails = lookups.filter((l) => l.email).length;
     step("email", "done", `Found ${emails} emails`, { count: emails });
