@@ -182,9 +182,20 @@ button, input, textarea { font: inherit; color: inherit; }
 }
 
 /* Optional filters under the goal box */
-.filters { border: 0; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.filters { border: 0; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .filters legend { grid-column: 1 / -1; padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--ink); }
 .filters legend span { font-weight: 400; color: var(--muted); }
 .field select { width: 100%; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 10px 12px; font-size: 14.5px; font-family: inherit; }
 .field select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-@media (max-width: 720px) { .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 720px) { .filters { grid-template-columns: 1fr; } }
+
+/* Profile */
+.profile { max-width: 760px; display: grid; gap: 16px; padding-bottom: 64px; }
+.profile .sub { color: var(--muted); margin: -4px 0 4px; }
+.profile .field textarea.short { min-height: 110px; }
+.profile-h { font-size: 15px; margin: 12px 0 0; }
+.asset { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; }
+.asset-row { display: grid; grid-template-columns: 160px 1fr auto; gap: 12px; align-items: end; }
+.asset-row .link-btn { padding-bottom: 10px; }
+.profile-actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 8px; }
+@media (max-width: 560px) { .asset-row { grid-template-columns: 1fr; } }

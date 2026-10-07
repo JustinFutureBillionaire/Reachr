@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   const { goal, filters } = await req.json().catch(() => ({}));
   if (typeof goal !== "string" || !goal.trim()) return Response.json({ error: "goal required" }, { status: 400 });
   // Optional filters, all grounded in data LinkedIn actually has. They ride along in the goal text,
-  // so the planner, filter and scorer all see them. Recency maps to the search's postedLimit.
+  // so the planner, filter and scorer all see them.
   const f = filters && typeof filters === "object" ? filters : {};
   const str = (v: unknown) => (typeof v === "string" ? v.trim().slice(0, 80) : "");
   const parts = [
@@ -20,7 +20,6 @@ export async function POST(req: Request) {
     str(f.industry) && `Industry: ${str(f.industry)}`,
   ].filter(Boolean);
   const fullGoal = parts.length ? `${goal.trim()} (${parts.join(" · ")})` : goal.trim();
-  const postedLimit = ["24h", "week", "month"].includes(f.recency) ? f.recency : "month";
   const enc = new TextEncoder();
   const stream = new ReadableStream({
     async start(c) {
@@ -29,7 +28,7 @@ export async function POST(req: Request) {
           c.enqueue(enc.encode(`data: ${JSON.stringify(e)}\n\n`));
         } catch {} // client went away; keep running so the run still gets saved
       };
-      await runPipeline(fullGoal, emit, postedLimit);
+      await runPipeline(fullGoal, emit);
       try {
         c.close();
       } catch {}

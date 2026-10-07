@@ -10,7 +10,7 @@
 **Who pays:** students and early founders ($29/mo); career centers and accelerators (per seat).
 
 ## 2. Architecture (pipeline)
-1. **Input**: goal + one-line user background + optional filters (location, role, industry, posted within 24h/week/month). Filters are appended to the goal text for the planner/filter/scorer; recency maps to the search `postedLimit`. No age/race or other protected-trait filters: LinkedIn has no such data, so they could only be guessed from names/photos (unreliable and discriminatory).
+1. **Input**: goal + one-line user background + optional filters (location, role, industry). Filters are appended to the goal text for the planner/filter/scorer. The user edits their own name/background/assets on the Profile screen (`/api/profile`); drafts only use those facts. No age/race or other protected-trait filters: LinkedIn has no such data, so they could only be guessed from names/photos (unreliable and discriminatory).
 2. **Plan** (Agent37 instance): turn the goal into 5 LinkedIn search keyword strings, excluding people already suggested. The instance keeps a session per user, so it remembers past runs and contacts.
 3. **Collect** (Monid `apify /harvestapi/linkedin-post-search`, backend): one Monid run per keyword, max 8 results each. Normalize to people (keep author LinkedIn profile URL). Source today: LinkedIn only.
 4. **Filter** (OpenAI FAST): drop duplicates, companies, clear mismatches. Keep ≤ 15.

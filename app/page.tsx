@@ -10,8 +10,11 @@ type Candidate = {
 };
 type Costs = { agent37: number; monid: number; openai_tokens: number };
 type RunResult = { runId: string; goal: string; candidates: Candidate[]; costs: Costs; demoRedirect: string | null };
-type Filters = { location: string; role: string; industry: string; recency: "24h" | "week" | "month" };
-const NO_FILTERS: Filters = { location: "", role: "", industry: "", recency: "month" };
+type Filters = { location: string; role: string; industry: string };
+const NO_FILTERS: Filters = { location: "", role: "", industry: "" };
+type Asset = { type: string; title: string; one_liner: string; url: string | null };
+type Profile = { name: string; background: string; assets: Asset[] };
+const ASSET_TYPES = ["project", "achievement", "skill", "link"];
 // Only filters grounded in what LinkedIn actually shows (no inferred age, race or other protected traits).
 const ROLES = ["Founder / CEO", "Executive", "Manager / Lead", "Engineer / IC", "Researcher / Professor", "Investor"];
 type StepId = "plan" | "search" | "filter" | "email" | "score" | "draft" | "save";
@@ -52,7 +55,11 @@ async function api(url: string, init: RequestInit = {}, retry = true): Promise<R
 }
 
 export default function Home() {
-  const [phase, setPhase] = useState<"idle" | "running" | "results">("idle");
+  const [phase, setPhase] = useState<"idle" | "running" | "results" | "profile">("idle");
+  const [me, setMe] = useState("");
+  useEffect(() => {
+    api("/api/profile").then((r) => r.json()).then((p: Profile) => setMe(p.name)).catch(() => {});
+  }, []);
   const [goal, setGoal] = useState("");
   const [steps, setSteps] = useState<Partial<Record<StepId, StepState>>>({});
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +133,9 @@ export default function Home() {
         </button>
         <div className="top-right">
           {demoRedirect && <span className="demo-badge">Demo mode: all email goes to {demoRedirect}</span>}
-          <span>Sending as Justin Oh</span>
+          <button className="link-btn" onClick={() => setPhase("profile")} disabled={phase === "running"}>
+            {me ? `Sending as ${me}` : "Your profile"} · Edit profile
+          </button>
         </div>
       </header>
 
@@ -137,6 +146,7 @@ export default function Home() {
         <Running goal={goal} steps={steps} error={error} onRetry={() => run(goal)} onBack={reset} />
       )}
       {phase === "results" && result && <Results result={result} onNew={reset} />}
+      {phase === "profile" && <ProfileView onDone={reset} onSaved={setMe} />}
     </div>
   );
 }
@@ -181,14 +191,6 @@ function Landing({ goal, setGoal, filters, setFilters, onRun, onLoad, notice }: 
           <div className="field">
             <label htmlFor="f-industry">Industry</label>
             <input id="f-industry" value={filters.industry} onChange={set("industry")} placeholder="e.g. Edtech" />
-          </div>
-          <div className="field">
-            <label htmlFor="f-recency">Posted within</label>
-            <select id="f-recency" value={filters.recency} onChange={set("recency")}>
-              <option value="month">Past month</option>
-              <option value="week">Past week</option>
-              <option value="24h">Past 24 hours</option>
-            </select>
           </div>
         </fieldset>
       </form>
@@ -443,5 +445,88 @@ function Card({ c, i, demo }: { c: Candidate; i: number; demo: boolean }) {
         </div>
       </div>
     </article>
+  );
+}
+
+// The user's own facts. Drafts may only use what is saved here, so this is where "about me" lives.
+function ProfileView({ onDone, onSaved }: { onDone: () => void; onSaved: (name: string) => void }) {
+  const [p, setP] = useState<Profile | null>(null);
+  const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  useEffect(() => {
+    api("/api/profile").then((r) => r.json()).then((d: Profile) => setP(d)).catch(() => setState("error"));
+  }, []);
+  if (!p) return <main className="profile"><p className="sub">{state === "error" ? "Could not load your profile." : "Loading your profile..."}</p></main>;
+
+  const edit = (next: Profile) => { setP(next); setState("idle"); };
+  const setAsset = (i: number, k: keyof Asset) => (e: { target: { value: string } }) =>
+    edit({ ...p, assets: p.assets.map((a, j) => (j === i ? { ...a, [k]: e.target.value } : a)) });
+
+  async function save() {
+    setState("saving");
+    const r = await api("/api/profile", {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p),
+    }).then((x) => x.json()).catch(() => ({ ok: false }));
+    setState(r.ok ? "saved" : "error");
+    if (r.ok && p) onSaved(p.name);
+  }
+
+  return (
+    <main className="profile">
+      <div className="results-head">
+        <div>
+          <p className="run-goal" style={{ margin: 0 }}>Your profile</p>
+          <h1>What Reachr may say about you</h1>
+        </div>
+        <button className="btn btn-ghost" onClick={onDone}>Back</button>
+      </div>
+      <p className="sub">Emails only use the facts written here. Nothing else about you is ever made up.</p>
+
+      <div className="field">
+        <label htmlFor="p-name">Name</label>
+        <input id="p-name" value={p.name} onChange={(e) => edit({ ...p, name: e.target.value })} />
+      </div>
+      <div className="field">
+        <label htmlFor="p-bg">Background</label>
+        <textarea id="p-bg" className="short" value={p.background} onChange={(e) => edit({ ...p, background: e.target.value })} />
+      </div>
+
+      <h2 className="profile-h">Projects, achievements and links</h2>
+      {p.assets.map((a, i) => (
+        <div className="asset" key={i}>
+          <div className="asset-row">
+            <div className="field">
+              <label htmlFor={`a-${i}-type`}>Type</label>
+              <select id={`a-${i}-type`} value={a.type} onChange={setAsset(i, "type")}>
+                {ASSET_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor={`a-${i}-title`}>Title</label>
+              <input id={`a-${i}-title`} value={a.title} onChange={setAsset(i, "title")} placeholder="e.g. Srake" />
+            </div>
+            <button className="link-btn" onClick={() => edit({ ...p, assets: p.assets.filter((_, j) => j !== i) })}>Remove</button>
+          </div>
+          <div className="field">
+            <label htmlFor={`a-${i}-line`}>One-liner</label>
+            <input id={`a-${i}-line`} value={a.one_liner} onChange={setAsset(i, "one_liner")} placeholder="What it is and what you did" />
+          </div>
+          <div className="field">
+            <label htmlFor={`a-${i}-url`}>Link (optional)</label>
+            <input id={`a-${i}-url`} value={a.url ?? ""} onChange={setAsset(i, "url")} placeholder="https://" />
+          </div>
+        </div>
+      ))}
+      <button className="btn btn-ghost btn-sm" onClick={() => edit({ ...p, assets: [...p.assets, { type: "project", title: "", one_liner: "", url: null }] })}>
+        + Add item
+      </button>
+
+      <div className="profile-actions" aria-live="polite">
+        {state === "saved" && <span className="status ok">Saved. New drafts will use this.</span>}
+        {state === "error" && <span className="status err">Could not save. Try again.</span>}
+        <button className="btn btn-accent" onClick={save} disabled={state === "saving" || !p.name.trim()}>
+          {state === "saving" ? "Saving..." : "Save profile"}
+        </button>
+      </div>
+    </main>
   );
 }
