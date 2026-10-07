@@ -23,7 +23,7 @@
 
 Sponsors: Agent37 (per-user agent + memory, required), Monid (data), OpenAI (filter/score/draft), Supabase (storage), InstaCloud (deploy, only if time).
 
-## 3. Data model (supabase/schema.sql, RLS off)
+## 3. Data model (supabase/schema.sql, RLS on, no policies; service role only)
 - `users`: id uuid pk, name text, background text, agent37_instance_id text, agent37_url text, session_id text
 - `user_assets`: id uuid pk, user_id uuid, type text (project | achievement | skill | link), title text, one_liner text, url text, tags text[]
 - `runs`: id uuid pk, user_id uuid, goal text, status text, agent_cost_usd numeric, monid_cost_usd numeric, openai_cost_usd numeric, created_at timestamptz default now()

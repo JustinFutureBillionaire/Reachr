@@ -12,7 +12,7 @@ Demo path that must always work: Run -> cards appear -> "Why this email" -> Appr
 
 ## Stack
 - Next.js (app router) + TypeScript, run with `npm run dev`
-- Supabase (`@supabase/supabase-js`, service role key, server side only, RLS off)
+- Supabase (`@supabase/supabase-js`, service role key, server side only, RLS on with no policies so only the service role can access)
 - OpenAI SDK (structured outputs). Models from env: OPENAI_MODEL_FAST, OPENAI_MODEL_SMART
 - Agent37 Cloud (per-user agent instance: plans searches, remembers who was suggested/contacted)
 - Monid CLI (`monid`), called from the backend via child_process with `-j`

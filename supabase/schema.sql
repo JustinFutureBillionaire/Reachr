@@ -1,4 +1,4 @@
--- Reachr schema. Paste into Supabase SQL editor. RLS stays off.
+-- Reachr schema. Paste into Supabase SQL editor.
 create table if not exists users (
   id uuid primary key default gen_random_uuid(),
   name text,
@@ -59,3 +59,10 @@ create table if not exists candidates (
 insert into users (id, name, background)
 values ('00000000-0000-0000-0000-000000000001', 'Demo User', 'Student building AI agents')
 on conflict (id) do nothing;
+
+-- RLS on with no policies: the public anon key can't touch these tables;
+-- the server's service role key bypasses RLS, so app code is unaffected.
+alter table users enable row level security;
+alter table user_assets enable row level security;
+alter table runs enable row level security;
+alter table candidates enable row level security;
