@@ -36,7 +36,9 @@ Seed: one demo user + `seed/assets.json` into `user_assets`.
 ### Agent37
 - Create instance (once): `POST https://api.agent37.com/v1/instances`, header `Authorization: Bearer $AGENT37_KEY`, body `{"budget":{"credit_micros":1000000}}`. Response has `id`, `url`, `status: "running"`. Save to `users`.
 - Run a turn: `POST {url}/v1/responses`, header `X-Agent37-Key: $AGENT37_KEY`, body `{"input": "...", "session_id": "<saved or omit first time>"}`. Non-streaming returns one JSON body. Streaming (`"stream": true`) emits SSE: `response.created` (has `session_id`), `response.output_text.delta`, `response.completed` (has `output_text`, `usage.cost_usd`).
+- Instance boots async: poll `GET {url}/v1/health` until `healthy: true` before the first turn. Failed turns return HTTP 200 with `status: "failed"`; always check `status === "completed"`.
 - Save `session_id` on first call and reuse it every run.
+- **Created (Step 1):** instance `jzywbr409f` (`https://jzywbr409f.agent37.app`), id/url/session_id saved on the demo user row. Never create another.
 - Reference: https://www.agent37.com/docs/llms-full.txt
 
 ### Monid (CLI, from backend)
@@ -44,7 +46,22 @@ Seed: one demo user + `seed/assets.json` into `user_assets`.
 - Inspect (mandatory before use): `monid inspect -p <provider> -e <endpoint> -j` → `input.body`, `input.queryParams`, `input.pathParams`
 - Run: `monid run -p <provider> -e <endpoint> -i '<json body>' -w 60 -j` → result items + `cost.value`
 - Limits apply per search term, not per call. One term per call. Start with max 8.
-- Chosen: `apify /harvestapi/linkedin-post-search` (people search) and `hunterio /email-finder` (GET, queryParams: linkedin_handle | first_name+last_name | full_name, plus domain | company; returns email + confidence). Inspect before first call.
+- Auth: no env var. `monid keys add -k $MONID_KEY -l main` once (scripts/check/monid.ts does it via execFile).
+- Run result JSON: `status` (`COMPLETED`), `output[]` (items), `cost.value`, `resultCount`.
+
+#### Chosen endpoint 1: `apify /harvestapi/linkedin-post-search` (inspected + one real run)
+- POST body: `{"searchQueries":["<one query>"],"maxPosts":8,"postedLimit":"month"}` (other options: `sortBy`, `authorKeywords`, `authorsCompanies`; not needed today).
+- Price $0.0092/result + tiny flat fee → ~$0.074 per query, ~$0.37 per run (5 queries). Took ~8s.
+- Useful fields per item: `type` ("post"), `linkedinUrl` (post link = source_url), `content` (post text = evidence), `postedAt.date`, `author.type` ("profile" | "company"), `author.name`, `author.publicIdentifier` (LinkedIn handle), `author.info` (headline = title), `author.website`. There is no separate org field; the scorer infers org from the headline/post.
+- Observed noise: recruiter / job-ad posts (first test result was a recruiter). Filter must drop recruiters and job ads unless the goal is hiring.
+
+#### Chosen endpoint 2: `hunterio /email-finder` (inspected, not yet run)
+- GET, pass via `--query` (not `-i`): `{"linkedin_handle":"<author.publicIdentifier>","max_duration":10}`; or `first_name`+`last_name` / `full_name` with `domain` | `company`.
+- Returns `email` (null on miss), confidence 0-100, deliverability (valid / accept_all / unknown), job title, company.
+- Price $0.0245 only when found; a miss is free. ≤15 lookups per run → ≤ ~$0.37.
+
+#### Estimated cost per full run
+Agent37 ~$0 (measured $0 on test turns) + Monid search ~$0.37 + Hunter ≤ ~$0.37 + OpenAI (small) ≈ under $1.
 - Reference: https://monid.ai/SKILL.md
 
 ### Gmail
@@ -72,12 +89,12 @@ The user contacted: {name} ({org}) about "{goal}" on {date}. Remember this and n
 ```
 You evaluate outreach candidates for this goal: {goal}. User background: {background}.
 Use ONLY each candidate's evidence. Never invent facts.
-First drop: companies, duplicates, anyone clearly unrelated to the goal.
+First drop: companies, duplicates, recruiters and job ads (unless the goal is hiring), anyone clearly unrelated to the goal.
 Score the rest 1-5 on:
 - fit: how well they match the goal
 - reply_reason: a specific, real reason THIS person would answer THIS user
 - recency: active recently, based on the evidence
-- reachability: a realistic public contact path
+- reachability: a realistic public contact path (has_email = true → 5; no email → at most 2)
 For each, write hook: one sentence on why they would reply, citing the evidence.
 Return the top 10 by total.
 ```
@@ -103,26 +120,27 @@ Return JSON: {"subject","body","used_evidence","used_assets"}
 
 **Time check: build started late (≈2:52). Compressed timeline below.**
 
-### Step 1 — Setup + connectivity (until ~3:10)
+### Step 1 — Setup + connectivity ✅ DONE (3:30)
 - Scaffold Next.js TS; install `@supabase/supabase-js openai nodemailer dotenv tsx`.
 - Write `supabase/schema.sql` (section 3) → user pastes in Supabase SQL editor.
 - `scripts/check/{openai,supabase,monid,agent37,gmail}.ts`: tiny completion; insert+select; discover "linkedin posts" and "email finder" (print top 5 with provider/endpoint/health); create ONE Agent37 instance, save to users, send "Reply with OK", print reply + session_id; send test email to DEMO_REDIRECT_TO.
 - **Done when** all 5 checks pass and the user picks the LinkedIn + email-finder endpoints.
+- Result: `npm run check` passes all 5. Models: FAST `gpt-5.4-mini`, SMART `gpt-5.5`. Endpoints chosen (section 4).
 
-### Step 2 — Collect (until ~3:35)
+### Step 2 — Collect (now: 3:40 → ~3:50) — code drafted, NOT run/verified, not committed
 - `lib/agent37.ts`: `planQueries(goal, background, excluded)`, `rememberContacted(...)`, reuse session_id.
 - `lib/monid.ts`: `runEndpoint(provider, endpoint, input)` → items + cost. Run queries in parallel.
-- `lib/collect.ts`: normalize → {name, title, org, platform, source_url, evidence}, dedupe, max 40.
+- `lib/collect.ts`: normalize → {name, title (headline), org (null), platform, source_url (post), profile_url, linkedin_handle, evidence ("(posted YYYY-MM-DD) " + content ≤1500 chars)}. Skip `author.type = company`, dedupe by handle, drop excluded names, max 40.
 - `scripts/run-collect.ts "<goal>"` → prints count, first 5, costs; saves `out/candidates.json`.
 - **Done when** ≥ 20 candidates, all with source_url and real evidence text.
 
-### Step 3 — Score + match + draft + email (until ~3:55)
-- Seed `user_assets` from `seed/assets.json`.
-- `lib/score.ts` (5.3), `lib/draft.ts` (5.4), `lib/email-find.ts` (Hunter via Monid; fallback linkedin_dm).
+### Step 3 — Filter + email + score + draft (~3:50 → ~4:00)
+- **Needs from user first:** one-line background + 3-6 real assets (type, title, one_liner, url) → `seed/assets.json` → `user_assets`. Never invent assets.
+- Order: filter (FAST, ≤15) → `lib/email-find.ts` (Hunter by linkedin_handle; miss → linkedin_dm) → `lib/score.ts` (5.3, with has_email) → top 10 → `lib/draft.ts` (5.4).
 - `scripts/run-full.ts "<goal>"` → saves run + 10 candidates to Supabase, prints all drafts.
 - **Done when** drafts reference real evidence and only real assets.
 
-### Step 4 — UI + Approve/Send (until 4:05 — FREEZE)
+### Step 4 — UI + Approve/Send (~4:00 → 4:05 FREEZE; likely needs cut order section 7)
 - `POST /api/run` with SSE step logs ("Planning queries", "Searched LinkedIn: N people", "Filtered to 15", "Scored top 10", "Drafted 10 emails").
 - Single page: left = goal/background, Run, live log. Right = 10 cards (name, title, org, score, hook, source link, email or "LinkedIn DM", editable subject/body, "Why this email" toggle showing used_evidence + used_assets, Approve for email cards / "Open in LinkedIn" (copy draft + open profile) for linkedin_dm cards).
 - `POST /api/send` → nodemailer (respect DEMO_REDIRECT_TO, show "demo redirect" badge) → status contacted → `rememberContacted`.
