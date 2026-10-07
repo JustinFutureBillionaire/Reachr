@@ -19,7 +19,7 @@
 7. **Find email** (Monid email-finder endpoint). None found → `channel = linkedin_dm`.
 8. **Draft** (OpenAI SMART): 4-sentence email (or 300-char LinkedIn note).
 9. **Approve → Send** (nodemailer/Gmail). Status → `contacted`. Tell the Agent37 instance who was contacted.
-10. *(Vision, not built today)*: weekly auto-run, reply tracking, follow-ups after 3 days.
+10. *(Vision, not built today)*: weekly auto-run, reply tracking, follow-ups after 3 days, more channels (Instagram DM, LinkedIn DM sending). Today: email only.
 
 Sponsors: Agent37 (per-user agent + memory, required), Monid (data), OpenAI (filter/score/draft), Supabase (storage), InstaCloud (deploy, only if time).
 
