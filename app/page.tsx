@@ -8,7 +8,7 @@ type Candidate = {
   email: string | null; channel: "email" | "linkedin_dm"; subject: string | null; body: string;
   used_evidence: string; used_assets: string[]; status: "suggested" | "contacted" | "replied";
 };
-type Costs = { agent37: number; monid: number; openai_tokens: number };
+type Costs = { agent37: number; monid: number; openai: number; openai_tokens: number };
 type RunResult = { runId: string; goal: string; candidates: Candidate[]; costs: Costs; demoRedirect: string | null };
 type Filters = { location: string; role: string; industry: string };
 const NO_FILTERS: Filters = { location: "", role: "", industry: "" };
@@ -301,7 +301,7 @@ function Running({ goal, steps, error, onRetry, onBack }: {
 
 function Results({ result, onNew }: { result: RunResult; onNew: () => void }) {
   const list = [...result.candidates].sort((a, b) => b.total - a.total).slice(0, 10);
-  const { agent37, monid, openai_tokens } = result.costs;
+  const { agent37, monid, openai } = result.costs;
   const hours = Math.round((list.length * 20) / 60);
   return (
     <main>
@@ -321,7 +321,8 @@ function Results({ result, onNew }: { result: RunResult; onNew: () => void }) {
       )}
       <footer className="foot">
         <span>
-          Run cost <b className="mono">{money(agent37 + monid)}</b> (Agent37 {money(agent37)} + Monid {money(monid)}) + <span className="mono">{openai_tokens.toLocaleString()}</span> OpenAI tokens
+          Run cost <b className="mono">{money(openai + agent37 + monid)}</b>
+          <span className="cost-split mono">OpenAI {money(openai)} · Agent37 {money(agent37)} · Monid {money(monid)}</span>
         </span>
         <span>Saved <b>~{hours}h</b> ({list.length} people × 20 min)</span>
       </footer>

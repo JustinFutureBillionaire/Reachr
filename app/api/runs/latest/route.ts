@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   if (no) return no;
   const { data: run } = await db
     .from("runs")
-    .select("id,goal,agent_cost_usd,monid_cost_usd")
+    .select("id,goal,agent_cost_usd,monid_cost_usd,openai_cost_usd")
     .eq("user_id", DEMO_USER_ID)
     .eq("status", "done")
     .order("created_at", { ascending: false })
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     runId: run.id,
     goal: run.goal,
     candidates,
-    costs: { agent37: Number(run.agent_cost_usd ?? 0), monid: Number(run.monid_cost_usd ?? 0), openai_tokens: 0 },
+    costs: { agent37: Number(run.agent_cost_usd ?? 0), monid: Number(run.monid_cost_usd ?? 0), openai: Number(run.openai_cost_usd ?? 0), openai_tokens: 0 },
     demoRedirect: process.env.DEMO_REDIRECT_TO || null,
   });
 }

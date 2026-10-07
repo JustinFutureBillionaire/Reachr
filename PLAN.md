@@ -61,7 +61,7 @@ Seed: one demo user + `seed/assets.json` into `user_assets`.
 - Price $0.0245 only when found; a miss is free. ≤15 lookups per run → ≤ ~$0.37.
 
 #### Estimated cost per full run
-Agent37 ~$0 (measured $0 on test turns) + Monid search ~$0.37 + Hunter ≤ ~$0.37 + OpenAI (small) ≈ under $1.
+Measured (4 queries x 6 posts, 2026-10-07): Monid $0.22 + OpenAI $0.06 (tokens x official prices in lib/llm.ts) + Agent37 $0 (reported cost_usd) ≈ $0.28 per run. Next: profile search + per-person posts (~$0.17, real location filter).
 - Reference: https://monid.ai/SKILL.md
 
 ### Gmail

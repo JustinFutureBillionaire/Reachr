@@ -28,6 +28,7 @@ export async function runPipeline(goal: string, emit: Emit, postedLimit = "month
     if (re) throw re;
     runId = run.id as string;
     const tokens0 = usage.tokens;
+    const usd0 = usage.usd;
 
     step("plan", "start", "Agent37 is planning LinkedIn searches");
     const { queries, cost: agentCost } = await planQueries(goal, me.background, excluded);
@@ -82,8 +83,9 @@ export async function runPipeline(goal: string, emit: Emit, postedLimit = "month
     const { data: saved, error: ce } = await db.from("candidates").insert(rows).select(CANDIDATE_COLS);
     if (ce) throw ce;
     const monid = found.cost + lookups.reduce((s, l) => s + l.cost, 0);
-    // OpenAI does not report cost; tokens are returned live but not stored (no column for them).
-    await db.from("runs").update({ status: "done", agent_cost_usd: agentCost, monid_cost_usd: monid, openai_cost_usd: null }).eq("id", runId);
+    // OpenAI cost = measured tokens x official per-token prices (lib/llm.ts).
+    const openai = usage.usd - usd0;
+    await db.from("runs").update({ status: "done", agent_cost_usd: agentCost, monid_cost_usd: monid, openai_cost_usd: openai }).eq("id", runId);
     step("save", "done", `Saved ${saved.length} candidates`, { count: saved.length });
 
     const done = {
@@ -91,7 +93,7 @@ export async function runPipeline(goal: string, emit: Emit, postedLimit = "month
       runId,
       goal,
       candidates: saved.sort((a, b) => b.total - a.total),
-      costs: { agent37: agentCost, monid, openai_tokens: usage.tokens - tokens0 },
+      costs: { agent37: agentCost, monid, openai, openai_tokens: usage.tokens - tokens0 },
       demoRedirect: process.env.DEMO_REDIRECT_TO || null,
     };
     emit(done);

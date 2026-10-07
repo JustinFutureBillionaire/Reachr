@@ -15,7 +15,7 @@ export async function collect(queries: string[], excluded: string[] = [], posted
   const runs = await Promise.all(
     queries.map((q) =>
       runEndpoint("apify", "/harvestapi/linkedin-post-search", {
-        body: { searchQueries: [q], maxPosts: 8, postedLimit },
+        body: { searchQueries: [q], maxPosts: 6, postedLimit },
       })
     )
   );

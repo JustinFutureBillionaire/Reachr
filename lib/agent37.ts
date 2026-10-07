@@ -21,11 +21,11 @@ export async function planQueries(goal: string, background: string, excluded: st
 Goal: ${goal}
 User background: ${background}
 Never suggest again: ${excluded.join(", ") || "(none)"}
-Return ONLY JSON: {"queries": ["...", "...", "...", "...", "..."]}
+Return ONLY JSON: {"queries": ["...", "...", "...", "..."]}
 Each query is a LinkedIn post search keyword string: role + topic + place when relevant, 3-6 words. Make them diverse.`);
   const json = text.match(/\{[\s\S]*\}/)?.[0];
   if (!json) throw new Error(`Agent37 returned no JSON: ${text}`);
-  const queries = (JSON.parse(json).queries as string[]).filter(Boolean).slice(0, 5);
+  const queries = (JSON.parse(json).queries as string[]).filter(Boolean).slice(0, 4);
   return { queries, cost };
 }
 
