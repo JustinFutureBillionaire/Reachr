@@ -36,9 +36,10 @@ const STEPS: { id: StepId; label: string; unit: (n: number) => string }[] = [
 ];
 
 const EXAMPLES = [
-  "AI agent founders in SF open to mentoring a student",
-  "Edtech founders using AI for learning, for user interviews about my persuasion game",
-  "Behavioral psychology researchers working on persuasion",
+  "Behavioral psychology researchers",
+  "AI startup founders",
+  "Edtech founders building with AI",
+  "Product managers at AI companies",
 ];
 
 const money = (n: number) => `$${n.toFixed(2)}`;
