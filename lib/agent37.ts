@@ -33,3 +33,8 @@ export async function rememberContacted(name: string, org: string | null, goal: 
   const date = new Date().toISOString().slice(0, 10);
   return turn(`The user contacted: ${name} (${org ?? "unknown org"}) about "${goal}" on ${date}. Remember this and never suggest them again.`);
 }
+
+export async function rememberReply(name: string) {
+  const date = new Date().toISOString().slice(0, 10);
+  return turn(`${name} replied to the user's outreach on ${date}. Remember who replies; prefer people like them in future searches.`);
+}

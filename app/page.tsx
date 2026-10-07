@@ -12,6 +12,7 @@ type Costs = { agent37: number; monid: number; openai: number; openai_tokens: nu
 type RunResult = { runId: string; goal: string; candidates: Candidate[]; costs: Costs; demoRedirect: string | null };
 type Filters = { location: string; role: string; industry: string };
 const NO_FILTERS: Filters = { location: "", role: "", industry: "" };
+type Reply = { candidateId: string; name: string; from: string; subject: string; date: string | null; isNew: boolean };
 type Asset = { type: string; title: string; one_liner: string; url: string | null };
 type Profile = { name: string; background: string; assets: Asset[] };
 const ASSET_TYPES = ["project", "achievement", "skill", "link"];
@@ -300,6 +301,27 @@ function Running({ goal, steps, error, onRetry, onBack }: {
 }
 
 function Results({ result, onNew }: { result: RunResult; onNew: () => void }) {
+  const [replies, setReplies] = useState<Record<string, Reply>>({});
+  const [news, setNews] = useState<string[]>([]);
+  const [checking, setChecking] = useState(false);
+  // Polls the Gmail inbox (via /api/replies) every 30s while results are open.
+  async function checkReplies() {
+    setChecking(true);
+    try {
+      const r = await (await api("/api/replies")).json();
+      const list: Reply[] = r.replies ?? [];
+      setReplies(Object.fromEntries(list.map((x) => [x.candidateId, x])));
+      const fresh = list.filter((x) => x.isNew).map((x) => x.name);
+      if (fresh.length) setNews((n) => [...new Set([...n, ...fresh])]);
+    } catch {} finally {
+      setChecking(false);
+    }
+  }
+  useEffect(() => {
+    checkReplies();
+    const t = setInterval(checkReplies, 30_000);
+    return () => clearInterval(t);
+  }, []);
   const list = [...result.candidates].sort((a, b) => b.total - a.total).slice(0, 10);
   const { agent37, monid, openai } = result.costs;
   const hours = Math.round((list.length * 20) / 60);
@@ -310,13 +332,22 @@ function Results({ result, onNew }: { result: RunResult; onNew: () => void }) {
           <p className="run-goal" style={{ margin: 0 }}>{list.length} people for</p>
           <h1>{result.goal}</h1>
         </div>
-        <button className="btn btn-ghost" onClick={onNew}>New search</button>
+        <div className="results-actions">
+          <button className="btn btn-ghost" onClick={checkReplies} disabled={checking}>{checking ? "Checking inbox..." : "Check replies"}</button>
+          <button className="btn btn-ghost" onClick={onNew}>New search</button>
+        </div>
       </div>
+      {news.length > 0 && (
+        <div className="reply-toast" role="status">
+          <span className="reply-dot" aria-hidden /> <b>{news.join(", ")}</b> replied to you.
+          <button className="link-btn" onClick={() => setNews([])}>Dismiss</button>
+        </div>
+      )}
       {list.length === 0 ? (
         <p className="empty">No one matched this goal. Try a broader goal or a different angle.</p>
       ) : (
         <div className="cards">
-          {list.map((c, i) => <Card key={c.id} c={c} i={i} demo={!!result.demoRedirect} />)}
+          {list.map((c, i) => <Card key={c.id} c={c} i={i} demo={!!result.demoRedirect} reply={replies[c.id]} />)}
         </div>
       )}
       <footer className="foot">
@@ -330,7 +361,7 @@ function Results({ result, onNew }: { result: RunResult; onNew: () => void }) {
   );
 }
 
-function Card({ c, i, demo }: { c: Candidate; i: number; demo: boolean }) {
+function Card({ c, i, demo, reply }: { c: Candidate; i: number; demo: boolean; reply?: Reply }) {
   const [subject, setSubject] = useState(c.subject ?? "");
   const [body, setBody] = useState(c.body);
   const [why, setWhy] = useState(false);
@@ -373,6 +404,13 @@ function Card({ c, i, demo }: { c: Candidate; i: number; demo: boolean }) {
         </div>
         <span className="score mono" aria-label={`Score ${c.total} out of 20`}>{c.total}<small>/20</small></span>
       </div>
+      {(reply || c.status === "replied") && (
+        <div className="reply-note">
+          <span className="reply-dot" aria-hidden /> Replied
+          {reply?.date && <> · {new Date(reply.date).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</>}
+          {reply?.subject && <> · <span className="mono">{reply.subject}</span></>}
+        </div>
+      )}
       <p className="hook">{c.hook}</p>
       <div className="meta">
         <a href={c.source_url} target="_blank" rel="noopener noreferrer">Source</a>

@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   const demo = !!process.env.DEMO_REDIRECT_TO;
   if (!demo && (c.channel !== "email" || !c.email)) return Response.json({ ok: false, error: "no email for this candidate" }, { status: 400 });
   try {
-    const { sentTo, redirected } = await sendMail(c.email ?? "no email found (LinkedIn DM)", c.name, subject, body);
+    const { sentTo, redirected } = await sendMail(c.email ?? "no email found (LinkedIn DM)", c.name, subject, body, candidateId);
     await db.from("candidates").update({ subject, body, status: "contacted" }).eq("id", candidateId);
     after(async () => {
       const { data: run } = await db.from("runs").select("goal").eq("id", c.run_id).single();

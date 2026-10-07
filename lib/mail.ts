@@ -7,11 +7,14 @@ const mail = nodemailer.createTransport({
   auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
 });
 
+// Our own Message-ID, so a reply's In-Reply-To header points straight back to the candidate (lib/replies.ts).
+export const messageIdFor = (candidateId: string) => `<reachr-${candidateId}@reachr.app>`;
+
 // When DEMO_REDIRECT_TO is set, every email goes there and nowhere else.
-export async function sendMail(to: string, name: string, subject: string, body: string) {
+export async function sendMail(to: string, name: string, subject: string, body: string, candidateId: string) {
   const redirect = process.env.DEMO_REDIRECT_TO || null;
   const sentTo = redirect ?? to;
   const text = redirect ? `[Reachr demo redirect] Original recipient: ${name} <${to}>\n\n${body}` : body;
-  await mail.sendMail({ from: process.env.GMAIL_USER, to: sentTo, subject, text });
+  await mail.sendMail({ from: process.env.GMAIL_USER, to: sentTo, subject, text, messageId: messageIdFor(candidateId) });
   return { sentTo, redirected: !!redirect };
 }
