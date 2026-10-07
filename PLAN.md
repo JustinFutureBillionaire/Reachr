@@ -3,9 +3,9 @@
 ## 1. Product
 **One line:** Reachr is a personal outreach agent. Give it a goal; it returns 10 people with a real, sourced reason to reply, drafts an email that connects their recent work to your real assets, and sends it when you approve.
 
-**Workflow it replaces:** researching who to cold-email. ~20 min per person on LinkedIn/web, 10 people ≈ 3+ hours a week. Everyone procrastinates it.
+**Workflow it replaces:** finding the right people for a specific purpose (user interviews for a project, a job or internship, a mentor, a collaborator) and then researching and writing to each one. ~20 min per person on LinkedIn/web, 10 people ≈ 3+ hours a week. Everyone procrastinates it. Reachr automates the finding, the research and the email; the human only approves.
 
-**Why it is different from Apollo/Clay:** they optimize sales volume (lists of 50). Reachr optimizes one reply from the right person: relationship goals (mentors, collaborators, investors, hiring managers), 10 people, every claim backed by a source, human approval before sending.
+**Why it is different from Apollo/Clay:** they optimize sales volume (lists of 50). Reachr optimizes one reply from the right person: purpose-driven goals (interviewees for a project, hiring managers, mentors, collaborators, investors), 10 people, every claim backed by a source, human approval before sending.
 
 **Who pays:** students and early founders ($29/mo); career centers and accelerators (per seat).
 

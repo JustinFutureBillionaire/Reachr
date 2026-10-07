@@ -9,7 +9,7 @@ try {
   // Not authed yet: register the key from .env (execFile, so it never hits shell history).
   monid("keys", "add", "-k", process.env.MONID_KEY!, "-l", "main");
 }
-console.log("whoami:", monid("whoami").trim());
+console.log("monid user:", JSON.parse(monid("whoami")).user.email);
 
 for (const q of ["linkedin posts", "email finder"]) {
   const out = JSON.parse(monid("discover", "-q", q, "-l", "5"));

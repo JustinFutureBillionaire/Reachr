@@ -2,7 +2,7 @@
 
 ## What we are building
 Reachr is an outreach agent built at a 2-hour hackathon ("Build an Agent", Agent37 / InsForge / Monid; sponsors OpenAI, Supabase).
-The user types a goal (e.g. "AI agent founders in SF open to mentoring a student"). Reachr finds people worth contacting, explains why each would reply (with a source link), writes a cold email that mixes the person's recent activity with the user's own real assets, and sends it after the user clicks Approve.
+The user types a goal (e.g. "AI agent founders in SF open to mentoring a student", "PMs at fintech startups for user interviews about my budgeting app", "hiring managers for ML internships"). Reachr finds people worth contacting, explains why each would reply (with a source link), writes a cold email that mixes the person's recent activity with the user's own real assets, and sends it after the user clicks Approve.
 
 Full spec, prompts, schema and build steps: see PLAN.md. Always read PLAN.md before starting a step.
 
