@@ -12,14 +12,14 @@
 ## 2. Architecture (pipeline)
 1. **Input**: goal + one-line user background.
 2. **Plan** (Agent37 instance): turn the goal into 5 LinkedIn search keyword strings, excluding people already suggested. The instance keeps a session per user, so it remembers past runs and contacts.
-3. **Collect** (Monid, backend): one Monid run per keyword, max 8 results each. Normalize to people.
+3. **Collect** (Monid `apify /harvestapi/linkedin-post-search`, backend): one Monid run per keyword, max 8 results each. Normalize to people (keep author LinkedIn profile URL). Source today: LinkedIn only.
 4. **Filter** (OpenAI FAST): drop duplicates, companies, clear mismatches. Keep ≤ 15.
-5. **Score** (OpenAI SMART): 1–5 on fit, reply_reason, recency, reachability. Top 10 by total. Add `hook`.
-6. **Match** (OpenAI): pick the 1–2 user assets that best overlap each person's evidence.
-7. **Find email** (Monid email-finder endpoint). None found → `channel = linkedin_dm`.
+5. **Find email** (Monid `hunterio /email-finder`, by `linkedin_handle` or name + company; ~$0.025 only when found, free on miss). Found → `channel = email`. None → `channel = linkedin_dm`.
+6. **Score** (OpenAI SMART): 1–5 on fit, reply_reason, recency, reachability (found email = high reachability, so email people rank first). Top 10 by total. Add `hook`.
+7. **Match** (OpenAI): pick the 1–2 user assets that best overlap each person's evidence.
 8. **Draft** (OpenAI SMART): 4-sentence email (or 300-char LinkedIn note).
-9. **Approve → Send** (nodemailer/Gmail). Status → `contacted`. Tell the Agent37 instance who was contacted.
-10. *(Vision, not built today)*: weekly auto-run, reply tracking, follow-ups after 3 days, more channels (Instagram DM, LinkedIn DM sending). Today: email only.
+9. **Approve → Send**: `email` → nodemailer/Gmail on Approve. `linkedin_dm` → "Open in LinkedIn" button copies the draft to clipboard and opens their profile; the user pastes and sends by hand (LinkedIn has no public messaging API and automating it breaks their ToS and risks bans — never automate LinkedIn sending). Either way status → `contacted`; tell the Agent37 instance who was contacted.
+10. *(Vision, not built today)*: weekly auto-run, reply tracking, follow-ups after 3 days, more sources (X/Twitter, Google, GitHub, Crunchbase via Monid), more channels (Instagram DM). Today: LinkedIn search, email sending, manual LinkedIn DM.
 
 Sponsors: Agent37 (per-user agent + memory, required), Monid (data), OpenAI (filter/score/draft), Supabase (storage), InstaCloud (deploy, only if time).
 
@@ -44,7 +44,7 @@ Seed: one demo user + `seed/assets.json` into `user_assets`.
 - Inspect (mandatory before use): `monid inspect -p <provider> -e <endpoint> -j` → `input.body`, `input.queryParams`, `input.pathParams`
 - Run: `monid run -p <provider> -e <endpoint> -i '<json body>' -w 60 -j` → result items + `cost.value`
 - Limits apply per search term, not per call. One term per call. Start with max 8.
-- Known candidate: `apify /harvestapi/linkedin-post-search` with `{"keywords":"...","maxResults":8}` (verify with inspect).
+- Chosen: `apify /harvestapi/linkedin-post-search` (people search) and `hunterio /email-finder` (GET, queryParams: linkedin_handle | first_name+last_name | full_name, plus domain | company; returns email + confidence). Inspect before first call.
 - Reference: https://monid.ai/SKILL.md
 
 ### Gmail
@@ -118,13 +118,13 @@ Return JSON: {"subject","body","used_evidence","used_assets"}
 
 ### Step 3 — Score + match + draft + email (until ~3:55)
 - Seed `user_assets` from `seed/assets.json`.
-- `lib/score.ts` (5.3), `lib/draft.ts` (5.4), `lib/email-find.ts` (Monid; fallback linkedin_dm).
+- `lib/score.ts` (5.3), `lib/draft.ts` (5.4), `lib/email-find.ts` (Hunter via Monid; fallback linkedin_dm).
 - `scripts/run-full.ts "<goal>"` → saves run + 10 candidates to Supabase, prints all drafts.
 - **Done when** drafts reference real evidence and only real assets.
 
 ### Step 4 — UI + Approve/Send (until 4:05 — FREEZE)
 - `POST /api/run` with SSE step logs ("Planning queries", "Searched LinkedIn: N people", "Filtered to 15", "Scored top 10", "Drafted 10 emails").
-- Single page: left = goal/background, Run, live log. Right = 10 cards (name, title, org, score, hook, source link, email or "LinkedIn DM", editable subject/body, "Why this email" toggle showing used_evidence + used_assets, Approve).
+- Single page: left = goal/background, Run, live log. Right = 10 cards (name, title, org, score, hook, source link, email or "LinkedIn DM", editable subject/body, "Why this email" toggle showing used_evidence + used_assets, Approve for email cards / "Open in LinkedIn" (copy draft + open profile) for linkedin_dm cards).
 - `POST /api/send` → nodemailer (respect DEMO_REDIRECT_TO, show "demo redirect" badge) → status contacted → `rememberContacted`.
 - "Load last run" button (reads latest run from Supabase, no re-run).
 - Footer: run cost (Agent37 + Monid + OpenAI) and "Saved ~3h (10 people × 20 min)".
@@ -148,4 +148,4 @@ Return JSON: {"subject","body","used_evidence","used_assets"}
 5. Numbers (20s): measured run cost vs ~3 hours saved. Only measured numbers.
 6. Vision (20s): runs every Monday, learns from who replies, sold to career centers and accelerators.
 
-Likely Q&A: vs Apollo/Clay (reply quality, not volume) · LinkedIn legality (data via providers through Monid, no direct scraping) · why an agent (stateful, weekly, remembers contacts) · reply rate (not measured yet; next metric).
+Likely Q&A: vs Apollo/Clay (reply quality, not volume) · LinkedIn legality (data via providers through Monid, no direct scraping, no automated LinkedIn messages — user sends DMs by hand) · why an agent (stateful, weekly, remembers contacts) · reply rate (not measured yet; next metric).

@@ -25,7 +25,7 @@ AGENT37_KEY, MONID_KEY, OPENAI_API_KEY, OPENAI_MODEL_FAST, OPENAI_MODEL_SMART, S
 ## Rules
 1. Work one step at a time (PLAN.md section 6). Finish a step, tell me exactly what to run to verify it, then stop.
 2. Never invent facts about people or about the user. People facts come only from `evidence`; user facts come only from `user_assets`.
-3. Never send email to anyone other than DEMO_REDIRECT_TO when that var is set. Never send without an explicit Approve click.
+3. Never send email to anyone other than DEMO_REDIRECT_TO when that var is set. Never send without an explicit Approve click. Never automate LinkedIn messages: linkedin_dm cards only copy the draft and open the profile.
 4. Monid: always `monid inspect` an endpoint before calling it. One search term per call, max 8 results. Use `-w 60`. A failed run is logged and skipped, never crashes the pipeline. Status values are UPPERCASE (`COMPLETED`).
 5. Agent37: Hosting API `https://api.agent37.com/v1` with `Authorization: Bearer $AGENT37_KEY`; instance API `https://{id}.agent37.app` with header `X-Agent37-Key: $AGENT37_KEY`. Full reference: https://www.agent37.com/docs/llms-full.txt. Create only ONE instance (credits are limited) and reuse it.
 6. Minimal UI, no auth, one seeded demo user. No new dependencies unless needed.
