@@ -1,0 +1,27 @@
+{
+  "name": "reachr",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "check": "for s in openai supabase monid agent37 gmail; do echo \"== $s\"; npx tsx scripts/check/$s.ts || exit 1; done"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.3",
+    "dotenv": "^18.0.6",
+    "next": "^16.4.0",
+    "nodemailer": "^10.0.16",
+    "openai": "^7.30.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/nodemailer": "^8.0.2",
+    "@types/react": "^19.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
