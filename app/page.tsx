@@ -10,6 +10,10 @@ type Candidate = {
 };
 type Costs = { agent37: number; monid: number; openai_tokens: number };
 type RunResult = { runId: string; goal: string; candidates: Candidate[]; costs: Costs; demoRedirect: string | null };
+type Filters = { location: string; role: string; industry: string; recency: "24h" | "week" | "month" };
+const NO_FILTERS: Filters = { location: "", role: "", industry: "", recency: "month" };
+// Only filters grounded in what LinkedIn actually shows (no inferred age, race or other protected traits).
+const ROLES = ["Founder / CEO", "Executive", "Manager / Lead", "Engineer / IC", "Researcher / Professor", "Investor"];
 type StepId = "plan" | "search" | "filter" | "email" | "score" | "draft" | "save";
 type StepState = { status: "start" | "done"; message: string; count?: number; items?: string[] };
 type RunEvent =
@@ -55,6 +59,7 @@ export default function Home() {
   const [result, setResult] = useState<RunResult | null>(null);
   const [demoRedirect, setDemoRedirect] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
 
   async function run(g: string) {
     const text = g.trim();
@@ -62,7 +67,7 @@ export default function Home() {
     setGoal(text); setSteps({}); setError(null); setNotice(null); setPhase("running");
     try {
       const res = await api("/api/run", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ goal: text }),
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ goal: text, filters }),
       });
       if (!res.ok || !res.body) throw new Error(`Run failed (HTTP ${res.status})`);
       const reader = res.body.getReader();
@@ -126,7 +131,7 @@ export default function Home() {
       </header>
 
       {phase === "idle" && (
-        <Landing goal={goal} setGoal={setGoal} onRun={run} onLoad={loadLatest} notice={notice} />
+        <Landing goal={goal} setGoal={setGoal} filters={filters} setFilters={setFilters} onRun={run} onLoad={loadLatest} notice={notice} />
       )}
       {phase === "running" && (
         <Running goal={goal} steps={steps} error={error} onRetry={() => run(goal)} onBack={reset} />
@@ -136,9 +141,11 @@ export default function Home() {
   );
 }
 
-function Landing({ goal, setGoal, onRun, onLoad, notice }: {
-  goal: string; setGoal: (g: string) => void; onRun: (g: string) => void; onLoad: () => void; notice: string | null;
+function Landing({ goal, setGoal, filters, setFilters, onRun, onLoad, notice }: {
+  goal: string; setGoal: (g: string) => void; filters: Filters; setFilters: (f: Filters) => void;
+  onRun: (g: string) => void; onLoad: () => void; notice: string | null;
 }) {
+  const set = (k: keyof Filters) => (e: { target: { value: string } }) => setFilters({ ...filters, [k]: e.target.value });
   return (
     <main className="hero">
       <h1 id="goal-label">Who do you want to reach, and why?</h1>
@@ -158,6 +165,32 @@ function Landing({ goal, setGoal, onRun, onLoad, notice }: {
             <button className="btn btn-primary" type="submit" disabled={!goal.trim()}>Run</button>
           </div>
         </div>
+        <fieldset className="filters">
+          <legend>Narrow it down <span>(optional)</span></legend>
+          <div className="field">
+            <label htmlFor="f-location">Location</label>
+            <input id="f-location" value={filters.location} onChange={set("location")} placeholder="e.g. San Francisco" />
+          </div>
+          <div className="field">
+            <label htmlFor="f-role">Role</label>
+            <select id="f-role" value={filters.role} onChange={set("role")}>
+              <option value="">Any role</option>
+              {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="f-industry">Industry</label>
+            <input id="f-industry" value={filters.industry} onChange={set("industry")} placeholder="e.g. Edtech" />
+          </div>
+          <div className="field">
+            <label htmlFor="f-recency">Posted within</label>
+            <select id="f-recency" value={filters.recency} onChange={set("recency")}>
+              <option value="month">Past month</option>
+              <option value="week">Past week</option>
+              <option value="24h">Past 24 hours</option>
+            </select>
+          </div>
+        </fieldset>
       </form>
       <div className="examples" aria-label="Example goals">
         {EXAMPLES.map((ex) => (

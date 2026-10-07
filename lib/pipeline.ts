@@ -12,7 +12,7 @@ export const CANDIDATE_COLS =
 type Step = "plan" | "search" | "filter" | "email" | "score" | "draft" | "save";
 export type Emit = (e: object) => void;
 
-export async function runPipeline(goal: string, emit: Emit) {
+export async function runPipeline(goal: string, emit: Emit, postedLimit = "month") {
   const step = (s: Step, status: "start" | "done", message: string, extra: object = {}) =>
     emit({ type: "step", step: s, status, message, ...extra });
   let runId: string | null = null;
@@ -34,7 +34,7 @@ export async function runPipeline(goal: string, emit: Emit) {
     step("plan", "done", `Planned ${queries.length} searches`, { items: queries });
 
     step("search", "start", "Searching LinkedIn posts via Monid");
-    const found = await collect(queries, excluded);
+    const found = await collect(queries, excluded, postedLimit);
     if (!found.people.length) throw new Error(`No people found on LinkedIn (${found.failed} searches failed)`);
     step("search", "done", `Found ${found.people.length} people`, { count: found.people.length });
 

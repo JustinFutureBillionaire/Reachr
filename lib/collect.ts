@@ -11,11 +11,11 @@ export type Person = {
   evidence: string;
 };
 
-export async function collect(queries: string[], excluded: string[] = []) {
+export async function collect(queries: string[], excluded: string[] = [], postedLimit = "month") {
   const runs = await Promise.all(
     queries.map((q) =>
       runEndpoint("apify", "/harvestapi/linkedin-post-search", {
-        body: { searchQueries: [q], maxPosts: 8, postedLimit: "month" },
+        body: { searchQueries: [q], maxPosts: 8, postedLimit },
       })
     )
   );
